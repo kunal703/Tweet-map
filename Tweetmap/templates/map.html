@@ -48,7 +48,20 @@
 
         });
 
+        if({{ mydata |safe }}) {
+               infowindowmessages = {{ mydata |safe }};
+                if(infowindowmessages.length==0)
+                    alert("No tweets found");
 
+               for (var i = 0; i < infowindowmessages.length; i++)
+               {
+                    var single_tweet = infowindowmessages[i];
+                    var lt = single_tweet._source.location.lat;
+                    var ln = single_tweet._source.location.lon;
+                    var lc = { lat: lt , lng: ln };
+                    addMarker(lc, map);
+               }
+          }
       }
 
 

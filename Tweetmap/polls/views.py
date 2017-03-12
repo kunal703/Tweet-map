@@ -13,10 +13,10 @@ from django.template import RequestContext
 import re
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
-consumer_key = 'YOUR_CONSUMER_KEY_HERE'
-consumer_secret = 'YOUR_CONSUMER_SECRET_HERE'
-access_token = 'YOUR_ACCESS_TOKEN_HERE'
-access_secret = 'YOUR_ACCESS_SECRET_HERE'
+consumer_key = 'f0y6JU1MAxBeCx2tQihj7aGfq'
+consumer_secret = 'IKw3W8LIpT1dmKIIErai7cjRttFndBKgWqBIPXQJ3wV20WgZ4w'
+access_token = '3287298026-lcRtdp82KxjWyAXswwQGrXyVhCyZKRltQvB7XAI'
+access_secret = 'jS94pRtjZJ55E05ZYbCBfXpLZLx5uGRjQBbs9aCTJT8cr'
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_secret)
@@ -26,7 +26,6 @@ es = Elasticsearch()
 
 class StreamListener(tweepy.StreamListener):
     status_wrapper = TextWrapper(width=60, initial_indent='    ', subsequent_indent='    ')
-    #counttweets = 0
 
     def __init__(self, time_limit=10):
         self.start_time = time.time()
@@ -34,6 +33,7 @@ class StreamListener(tweepy.StreamListener):
         super(StreamListener, self).__init__()
 
     def on_status(self, status):
+
         if (time.time() - self.start_time) < self.limit:
             #print 'n%s %s' % (status.author.screen_name, status.created_at)
                 tweets = status._json
@@ -56,27 +56,27 @@ class StreamListener(tweepy.StreamListener):
             json.dump(record, f)
             f.write(os.linesep)
 
+
 #streamer = tweepy.Stream(auth=auth, listener=StreamListener())
 @csrf_protect
 def filter(request):
-    print("hi")
     if request.method == "POST":
-        print(request.POST)
+        #print(request.POST)
         if 'searchname' in request.POST:
             query = str(request.POST.get('searchname', ''))
-            print(query)
+            #print(query)
             try:
-                l = StreamListener(time_limit=20)
+                l = StreamListener(time_limit=10)
                 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
                 auth.set_access_token(access_token, access_secret)
                 stream = tweepy.Stream(auth, l)
                 stream.filter(track=[query])
-                try:
-                    res = file_read()
-                except:
-                    return render(request, 'index.html', {
+
+                if not os.path.exists('my_file_1'):
+                    return render(request, 'map.html', {
                         "mydata": []
                     })
+                res = file_read()
                 tweets = []
                 #print(res)
                 for i in res:
@@ -86,7 +86,7 @@ def filter(request):
                 print(pass_list)
                 if os.path.exists('my_file_1'):
                     os.remove('my_file_1')
-                return render(request, 'index.html', {
+                return render(request, 'map.html', {
                     "mydata" : pass_list
                 })
             except (AttributeError, ValueError) as v:
@@ -102,7 +102,6 @@ def init_index(request):
 
 #Read the file consisting of tweets  and index it using elasticsearch
 def file_read():
-
     with open('my_file_1') as f:
         result = []
         for line in f:
