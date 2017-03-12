@@ -13,10 +13,10 @@ from django.template import RequestContext
 import re
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
-consumer_key = 'f0y6JU1MAxBeCx2tQihj7aGfq'
-consumer_secret = 'IKw3W8LIpT1dmKIIErai7cjRttFndBKgWqBIPXQJ3wV20WgZ4w'
-access_token = '3287298026-lcRtdp82KxjWyAXswwQGrXyVhCyZKRltQvB7XAI'
-access_secret = 'jS94pRtjZJ55E05ZYbCBfXpLZLx5uGRjQBbs9aCTJT8cr'
+consumer_key = 'YOUR_CONSUMER_KEY'
+consumer_secret = 'YOUR_CONSUMER_SECRET'
+access_token = 'YOUR_ACCESS_TOKEN'
+access_secret = 'YOUR_ACCESS_SECRET'
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_secret)
