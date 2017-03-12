@@ -11,9 +11,7 @@ from decimal import*
 from django.http import HttpResponse, JsonResponse
 from django.template import RequestContext
 import re
-from rest_framework.authentication import SessionAuthentication
-
-
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
 consumer_key = 'f0y6JU1MAxBeCx2tQihj7aGfq'
 consumer_secret = 'IKw3W8LIpT1dmKIIErai7cjRttFndBKgWqBIPXQJ3wV20WgZ4w'
@@ -29,10 +27,8 @@ es = Elasticsearch()
 class StreamListener(tweepy.StreamListener):
     status_wrapper = TextWrapper(width=60, initial_indent='    ', subsequent_indent='    ')
     #counttweets = 0
-    if os.path.exists('my_file_1'):
-        os.remove('my_file_1')
 
-    def __init__(self, time_limit=20):
+    def __init__(self, time_limit=10):
         self.start_time = time.time()
         self.limit = time_limit
         super(StreamListener, self).__init__()
@@ -59,85 +55,56 @@ class StreamListener(tweepy.StreamListener):
         with open('my_file_1', 'a') as f:
             json.dump(record, f)
             f.write(os.linesep)
-'''
-streamer = tweepy.Stream(auth=auth, listener=StreamListener() ,timeout=5)
 
-#Fill with your own Keywords bellow
-streamer.filter(track=['a'])
-#streamer.userstream(None)
-print("hi")
-with open('my_file_1') as f:
-    for line in f:
-        try:
-            data = json.loads(line)
-            place = data.get('place')
-            #print(place)
-            coordinates = (place.get('bounding_box').get('coordinates')[0])[0]
-            lat = coordinates[0]
-            lng = coordinates[1]
-            #print(lat)
-            #print(lng)
-            lng = Decimal(("%0.5f" % lng))
-            lat = Decimal(("%0.5f" % lat))
-            doc = {
-                "timestamp": datetime.now(),
-                "location": {
-                    "lat": lat,
-                    "lon": lng
-                },
-                "title": data.get('text')
-            }
-            es.index(index="idx_twp", doc_type='tweet', id=data.get('id'), body=doc)
-            # pprint(data)
-            res=es.get(index="idx_twp", doc_type='tweet', id=data.get('id'))
-            print(res)
-
-        except:
-            print
-            ('Error here')
-            pass
-'''
+#streamer = tweepy.Stream(auth=auth, listener=StreamListener())
+@csrf_protect
 def filter(request):
-    if request.method == "GET":
-        if 'searchstring' in request.GET:
-            query = str(request.GET.get('searchstring', ''))
+    print("hi")
+    if request.method == "POST":
+        print(request.POST)
+        if 'searchname' in request.POST:
+            query = str(request.POST.get('searchname', ''))
+            print(query)
             try:
                 l = StreamListener(time_limit=20)
                 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
                 auth.set_access_token(access_token, access_secret)
                 stream = tweepy.Stream(auth, l)
                 stream.filter(track=[query])
-                res=file_read()
-                tweets=es.search(index='tweet_index', body={"from" : 0, "size" : 1000,"query":{"match_all":{}}})
-                tweets=tweets['hits']['hits']
-
-                b=[]
-                for tweet in tweets:
-                    source = tweet.get('_source')
-                    a={}
-                    #a.append(source.get('location').get('lat'))
-                    #a.append(source.get('location').get('lon'))
-                    #a.append(source.get('title'))
-                    a['lat'] = source.get('location').get('lat')
-                    a['lon'] = source.get('location').get('lon')
-                    a['title'] = re.escape(source.get('title'))
-                    b.append(a)
+                try:
+                    res = file_read()
+                except:
+                    return render(request, 'index.html', {
+                        "mydata": []
+                    })
+                tweets = []
+                #print(res)
+                for i in res:
+                    tweets.append(es.get(index="idx_twp", doc_type='tweet', id=i))
+                #print(tweets)
+                pass_list = json.dumps(tweets)
+                print(pass_list)
                 if os.path.exists('my_file_1'):
                     os.remove('my_file_1')
-                return JsonResponse({'tweets': b})
+                return render(request, 'index.html', {
+                    "mydata" : pass_list
+                })
             except (AttributeError, ValueError) as v:
-                print (v)
+                print(v)
                 return HttpResponse('Error')
 
 
 #Renders the index.html on startup
+@csrf_exempt
 def init_index(request):
     return render(request, 'index.html')
 
 
 #Read the file consisting of tweets  and index it using elasticsearch
 def file_read():
+
     with open('my_file_1') as f:
+        result = []
         for line in f:
             try:
                 data = json.loads(line)
@@ -155,9 +122,10 @@ def file_read():
                 } ,
                 "title":data.get('text')
                 }
-                #pprint(data)
-                res = es.index(index="tweet_index", doc_type='tweet', id=data.get('id'), body=doc)
+              #  print(data)
+                es.index(index="idx_twp", doc_type='tweet', id=data.get('id'), body=doc)
+                result.append(data.get('id'))
             except:
-                print ('Error here')
+                #print('Error Here')
                 pass
-    return res
+    return result

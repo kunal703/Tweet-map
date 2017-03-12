@@ -1,4 +1,4 @@
-{% load static %}
+{% load staticfiles %}
 
 <!DOCTYPE html>
 <html>
@@ -10,7 +10,7 @@
     <title>Tweep-Map</title>
 
     <!-- Bootstrap -->
-    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
@@ -31,20 +31,56 @@
     </style>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCAApT_fiOjQg-nKIU00MlqPdPLHtLDksI"></script>
     <script>
-     // In the following example, markers appear when the user clicks on the map.
+      // In the following example, markers appear when the user clicks on the map.
       // Each marker is labeled with a single alphabetical character.
-      var map;
-        var bounds;
-            function initialize() {
-            var newyork = { lat: 40.730610, lng: -73.935242 };
-            var map = new google.maps.Map(document.getElementById('map'),
-                {zoom: 3,
-            center: newyork
+      var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      var labelIndex = 0;
+
+      function initialize() {
+        var newyork = { lat: 40.73061, lng: -73.93524 };
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 3,
+          center: newyork
         });
-            }
-            google.maps.event.addDomListener(window, 'load', initialize);
-    </script>
+
+        google.maps.event.addListener(map, 'click', function(event) {
+          addMarker(event.latLng, map);
+
+        });
+
+        if({{ mydata |safe }}) {
+               infowindowmessages = {{ mydata |safe }};
+                if(infowindowmessages.length==0)
+                    alert("No tweets found");
+
+               for (var i = 0; i < infowindowmessages.length; i++)
+               {
+                    var single_tweet = infowindowmessages[i];
+                    var lt = single_tweet._source.location.lat;
+                    var ln = single_tweet._source.location.lon;
+                    var lc = { lat: lt , lng: ln };
+                    addMarker(lc, map);
+               }
+          }
+      }
+
+
+
+      // Adds a marker to the map.
+      function addMarker(location, map) {
+        var marker = new google.maps.Marker({
+          position: location,
+          label: labels[labelIndex++ % labels.length],
+          map: map
+        });
+      }
+      google.maps.event.addDomListener(window, 'load', initialize);
+
+      </script>
+
+
   </head>
+
   <body>
   <nav class="navbar navbar-default">
   <div class="container-fluid">
@@ -58,67 +94,18 @@
       <a class="navbar-brand" href="">Tweet-Map</a>
     </div>
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-      <form method="post" class="navbar-form navbar-left" role="search">
+      <form class="navbar-form navbar-left" role="search"method="post"action="/f/">{% csrf_token %}
         <div class="form-group">
-          <input type="text" class="form-control" placeholder="Search by keyword.." name="searchtext">
+          <input type="text" class="form-control" placeholder="Search by keyword.."name="searchname">
         </div>
-        <button type="submit" class="btn btn-default" name="bnsubmit"onclick="eval()">Submit</button>
+        <button type="submit" class="btn btn-default" name="bnsubmit">Submit</button>
       </form>
     </div>
   </div>
   </nav>
 <div id="map"></div>
 
-  <script type="text/javascript">
-// Removes the markers from the map, but keeps them in the array.
-function clearMarkers() {
-   	setMapOnAll(null);
-}
-// Deletes all markers in the array by removing references to them.
-function deleteMarkers() {
-    clearMarkers();
-    markers = [];
-}
-//Adds markers to the map
-function addMarker(lat, lng, title) {
-    var position = new google.maps.LatLng(lat, lng);
-    var marker = new google.maps.Marker({
-        position: position,
-        title: unescape(title),
-        map:map
-    });
-    bounds.extend(position);
-}
-//Passes the searchstring to the map
-function eval() {
-	var val = document.getElementById("selectOption").value;
-    $.ajax({
-        url : "/f/",
-        method : "GET",
-        dataType: "json",
-        data: {
-        	searchstring: val
 
-        },
-        success: function (result) {
-            counter = 0;
-            //deleteMarkers();
-            infowindowmessages = result.tweets;
-            bounds = new google.maps.LatLngBounds();
-            for (var i = 0; i < infowindowmessages.length; i++) {
-                var res = infowindowmessages[i];
-                addMarker(res.lat, res.lon, unescape(res.title));
-            }
-            map.fitBounds(bounds);
-
-        },
-        error: function (textStatus, errorThrown) {
-        	console.log("Text status "+textStatus+" Error is "+errorThrown)
-        }
-    });
-
-}
-</script>
 
 
   </body>
