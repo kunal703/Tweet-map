@@ -25,7 +25,7 @@ SECRET_KEY = 'nufg75re2a9o4g%@wfl#0m60pe@j#w*7hihwq22e*(-$y!(w19'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['lowCost-env.xi5pubvt3i.us-west-2.elasticbeanstalk.com']
 
 
 # Application definition
@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'polls',
 ]
 
 MIDDLEWARE = [

@@ -12,17 +12,31 @@ from django.http import HttpResponse, JsonResponse
 from django.template import RequestContext
 import re
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from elasticsearch import Elasticsearch, RequestsHttpConnection
+from requests_aws4auth import AWS4Auth
+
 
 consumer_key = 'YOUR_CONSUMER_KEY'
-consumer_secret = 'YOUR_CONSUMER_SECRET'
-access_token = 'YOUR_ACCESS_TOKEN'
-access_secret = 'YOUR_ACCESS_SECRET'
+consumer_secret = 'YOUR_CONSUMER_SECRET_KEY'
+access_token = 'YOUR_ACCESS_TOKEN_KEY'
+access_secret = 'YOUR_ACCESS_SECRET_KEY'
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_secret)
 
 
-es = Elasticsearch()
+#es = Elasticsearch()
+host = 'YOUR_HOST_KEY'
+awsauth = AWS4Auth('YOUR_AWS_ACCESS_ID_KEY' , 'YOUR_AWS_SECRET_KEY','us-west-2', 'es')
+
+es = Elasticsearch(
+    hosts=[{'host': host, 'port': 443}],
+    http_auth=awsauth,
+    use_ssl=True,
+    verify_certs=True,
+    connection_class=RequestsHttpConnection
+)
+print(es.info())
 
 class StreamListener(tweepy.StreamListener):
     status_wrapper = TextWrapper(width=60, initial_indent='    ', subsequent_indent='    ')
@@ -31,6 +45,7 @@ class StreamListener(tweepy.StreamListener):
         self.start_time = time.time()
         self.limit = time_limit
         super(StreamListener, self).__init__()
+
 
     def on_status(self, status):
 
@@ -56,6 +71,9 @@ class StreamListener(tweepy.StreamListener):
             json.dump(record, f)
             f.write(os.linesep)
 
+    def on_timeout(self):
+        return False
+
 
 #streamer = tweepy.Stream(auth=auth, listener=StreamListener())
 @csrf_protect
@@ -66,11 +84,15 @@ def filter(request):
             query = str(request.POST.get('searchname', ''))
             #print(query)
             try:
-                l = StreamListener(time_limit=10)
+                l = StreamListener(time_limit=20)
                 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
                 auth.set_access_token(access_token, access_secret)
                 stream = tweepy.Stream(auth, l)
-                stream.filter(track=[query])
+                stream.timeout=20
+                try:
+                    stream.filter(track=[query])
+                except:
+                    pass
 
                 if not os.path.exists('my_file_1'):
                     return render(request, 'map.html', {
